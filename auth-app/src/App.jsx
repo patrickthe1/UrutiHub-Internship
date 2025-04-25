@@ -1,30 +1,34 @@
 import React from 'react';
-import { Routes, Route, Link } from 'react-router-dom'; // Import Routes, Route, Link
-import './App.css' // Keep existing styles if needed
+import { Routes, Route, Navigate } from 'react-router-dom'; // Import Navigate
+import './App.css'
 
-// Import your placeholder components
+// Import your page components
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
-import WelcomePage from './pages/WelcomePage';
+import Dashboard from './pages/Dashboard'; // Updated import
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
+  // Basic mock auth state - in a real app, this would be more robust (context, redux, etc.)
+  // For now, let's assume login sets something in localStorage or state.
+  // We'll simulate this by just having the routes.
+
   return (
-    <div className="App">
-      <nav>
-        {/* Optional: Add basic navigation links for easy testing */}
+    <div className="App-container"> {/* Use a different class to avoid conflict with App.css #root */}
+      {/* Remove the test navigation links */}
+      {/* <nav>
         <Link to="/signup">Signup</Link> |{" "}
         <Link to="/login">Login</Link> |{" "}
-        <Link to="/welcome">Welcome (Placeholder)</Link>
-      </nav>
+        <Link to="/dashboard">Dashboard</Link>
+      </nav> */}
 
       <Routes>
-        {/* Define routes */}
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/welcome" element={<WelcomePage />} />
-        {/* Add a root route that redirects or points to login/signup */}
-        <Route path="/" element={<LoginPage />} /> {/* Default to LoginPage */}
+        {/* Updated route path */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         {/* 404 Catch-all route */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

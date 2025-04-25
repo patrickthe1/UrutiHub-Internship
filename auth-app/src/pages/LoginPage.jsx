@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom'; // Import Link
-import { Mail, Lock } from 'lucide-react'; // Import icons
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock } from 'lucide-react';
+import Logo from '../components/Logo'; // Import the Logo component
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,9 +29,12 @@ function LoginPage() {
       setEmail('');
       setPassword('');
 
+      // Add a class for fade-out effect before navigation
+      document.querySelector('.auth-card').classList.add('fade-out');
+
       setTimeout(() => {
-        navigate('/welcome'); // Navigate to the mock dashboard
-      }, 1500);
+        navigate('/dashboard'); // Navigate to the dashboard
+      }, 500); // Match timeout with fade-out duration
 
     } catch (error) {
       setIsError(true);
@@ -49,14 +53,15 @@ function LoginPage() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <h1>Uruti Hub Internship</h1>
-        <h2>Sign In</h2>
+      {/* Add fade-in class */}
+      <div className="auth-card fade-in">
+        <Logo /> {/* Use the Logo component */} 
+        {/* Removed the h1 and h2 here as Logo includes branding */}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="login-email">Email</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
+              <Mail className="input-icon" size={18} aria-hidden="true" />
               <input
                 type="email"
                 id="login-email"
@@ -65,13 +70,15 @@ function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                aria-label="Email Address"
+                aria-required="true"
               />
             </div>
           </div>
           <div className="form-group">
             <label htmlFor="login-password">Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
+              <Lock className="input-icon" size={18} aria-hidden="true" />
               <input
                 type="password"
                 id="login-password"
@@ -80,10 +87,13 @@ function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                aria-label="Password"
+                aria-required="true"
               />
             </div>
           </div>
-          {message && <p className={`error-message ${isError ? '' : 'success-message'}`}>{message}</p>} {/* Display message */}
+          {/* Add aria-live for screen readers to announce messages */}
+          {message && <p className={`message-area ${isError ? 'error-message' : 'success-message'}`} role="alert" aria-live="assertive">{message}</p>} {/* Display message */}
           <button type="submit" className="submit-btn">Sign In</button>
         </form>
         <p style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
