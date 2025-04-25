@@ -1,13 +1,51 @@
 import React, { useState } from 'react';
+import axios from 'axios'; // Import axios
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState(''); // State for displaying feedback messages
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate(); // Initialize navigate hook
+
+  const handleSubmit = async (e) => { // Make the function async
     e.preventDefault();
-    console.log('Signup form submitted:', { email, password });
-    // API call will go here in a later task
+    setMessage(''); // Clear previous messages
+
+    try {
+      const response = await axios.post('http://localhost:5000/signup', {
+        email,
+        password
+      });
+
+      
+      setMessage(response.data.message); 
+      // Optional: Clear form fields
+      setEmail('');
+      setPassword('');
+
+      // Redirect to login page after a short delay (optional, or just redirect immediately)
+      setTimeout(() => {
+         navigate('/login');
+      }, 1000); // Redirect after 1 second
+
+    } catch (error) {
+      // Handle error response
+      if (error.response) {
+        // Server responded with a status code outside 2xx
+        console.error('Signup error response:', error.response.data);
+        setMessage(error.response.data.message || 'Signup failed.'); // Display backend error message
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('Signup error request:', error.request);
+        setMessage('No response from server. Please try again.');
+      } else {
+        // Something else happened
+        console.error('Signup error message:', error.message);
+        setMessage('An unexpected error occurred.');
+      }
+    }
   };
 
   return (
@@ -36,6 +74,7 @@ function SignupPage() {
         </div>
         <button type="submit">Sign Up</button>
       </form>
+      {message && <p style={{ color: message.includes('success') ? 'green' : 'red' }}>{message}</p>} 
     </div>
   );
 }
