@@ -1,6 +1,8 @@
 // Admin routes for Uruti Hub Internship Dashboard
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
+const db = require('../utils/db'); // Import db for transactions
 
 // Import models
 const { createIntern } = require('../models/interns');
@@ -14,28 +16,73 @@ const { adminRoleMiddleware } = require('../middleware/roleMiddleware');
 
 /**
  * POST /api/interns
- * Create a new intern
+ * Create a new intern and their user account
+ * Creates both a user record and an intern record, linked via user_id
  */
 router.post('/interns', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  // Extract all required fields for both user and intern
+  const { name, phone, referring_source, email, password } = req.body;
+  
+  // Basic validation
+  if (!name) {
+    return res.status(400).json({ error: 'Intern name is required' });
+  }
+  
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required for intern account' });
+  }
+
+  const client = await db.pool.connect();
+  
   try {
-    const { name, phone, referring_source, user_id } = req.body;
+    // Start transaction
+    await client.query('BEGIN');
     
-    // Basic validation
-    if (!name) {
-      return res.status(400).json({ error: 'Intern name is required' });
+    // Check if user with email already exists
+    const existingUser = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Email already exists' });
     }
     
-    const newIntern = await createIntern({
-      user_id, // Now can be passed directly in request
-      name,
-      phone,
-      referring_source
-    });
+    // Hash the password
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
     
-    res.status(201).json(newIntern);
+    // Create user with 'intern' role
+    const userResult = await client.query(
+      'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role',
+      [email, password_hash, 'intern']
+    );
+    
+    const user_id = userResult.rows[0].id;
+    
+    // Create intern record linked to the new user
+    const internResult = await client.query(
+      'INSERT INTO interns (user_id, name, phone, referring_source) VALUES ($1, $2, $3, $4) RETURNING *',
+      [user_id, name, phone, referring_source]
+    );
+    
+    // Commit the transaction
+    await client.query('COMMIT');
+    
+    // Return the created intern with user info
+    const newIntern = internResult.rows[0];
+    res.status(201).json({
+      intern: newIntern,
+      user: {
+        id: userResult.rows[0].id,
+        email: userResult.rows[0].email,
+        role: userResult.rows[0].role
+      },
+      message: 'Intern and user account created successfully'
+    });
   } catch (error) {
-    console.error('Error creating intern:', error);
-    res.status(500).json({ error: 'Failed to create intern' });
+    await client.query('ROLLBACK');
+    console.error('Error creating intern with user account:', error);
+    res.status(500).json({ error: 'Failed to create intern and user account' });
+  } finally {
+    client.release();
   }
 });
 
