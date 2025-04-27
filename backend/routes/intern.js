@@ -7,6 +7,10 @@ const { findInternByUserId } = require('../models/interns');
 const { findAssignmentsByInternId, findAssignmentById } = require('../models/internTasks');
 const { createSubmission, submissionExists, findSubmissionsByInternId } = require('../models/submissions');
 
+// Import middleware
+const authMiddleware = require('../middleware/authMiddleware');
+const { internRoleMiddleware } = require('../middleware/roleMiddleware');
+
 /**
  * Middleware to get the intern ID from the authenticated user
  * This is a helper function for the routes
@@ -24,15 +28,10 @@ const getInternId = async (userId) => {
  * GET /api/interns/me/tasks
  * Get all assigned tasks for the authenticated intern
  */
-router.get('/interns/me/tasks', async (req, res) => {
+router.get('/interns/me/tasks', authMiddleware, internRoleMiddleware, async (req, res) => {
   try {
-    // In a real implementation with auth, the user ID would come from req.user.id
-    // For now, we'll assume the authenticated user's ID is available
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    // With auth middleware, req.user is guaranteed to exist
+    const userId = req.user.id;
 
     // Get the intern ID associated with the user
     const internId = await getInternId(userId);
@@ -54,7 +53,7 @@ router.get('/interns/me/tasks', async (req, res) => {
  * POST /api/intern_tasks/:internTaskId/submit
  * Submit a solution link for a specific assigned task
  */
-router.post('/intern_tasks/:internTaskId/submit', async (req, res) => {
+router.post('/intern_tasks/:internTaskId/submit', authMiddleware, internRoleMiddleware, async (req, res) => {
   try {
     const { internTaskId } = req.params;
     const { submission_link } = req.body;
@@ -64,12 +63,8 @@ router.post('/intern_tasks/:internTaskId/submit', async (req, res) => {
       return res.status(400).json({ error: 'Submission link is required' });
     }
 
-    // In a real implementation with auth, the user ID would come from req.user.id
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    // With auth middleware, req.user is guaranteed to exist
+    const userId = req.user.id;
 
     // Get the intern ID associated with the user
     const internId = await getInternId(userId);
@@ -107,14 +102,10 @@ router.post('/intern_tasks/:internTaskId/submit', async (req, res) => {
  * GET /api/interns/me/submissions
  * Get all submissions for the authenticated intern
  */
-router.get('/interns/me/submissions', async (req, res) => {
+router.get('/interns/me/submissions', authMiddleware, internRoleMiddleware, async (req, res) => {
   try {
-    // In a real implementation with auth, the user ID would come from req.user.id
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    // With auth middleware, req.user is guaranteed to exist
+    const userId = req.user.id;
 
     // Get the intern ID associated with the user
     const internId = await getInternId(userId);

@@ -8,23 +8,25 @@ const { createTask, findTaskById } = require('../models/tasks');
 const { createAssignment, assignmentExists } = require('../models/internTasks');
 const { findSubmissionsByStatus, updateSubmissionStatus } = require('../models/submissions');
 
+// Import middleware
+const authMiddleware = require('../middleware/authMiddleware');
+const { adminRoleMiddleware } = require('../middleware/roleMiddleware');
+
 /**
  * POST /api/interns
  * Create a new intern
  */
-router.post('/interns', async (req, res) => {
+router.post('/interns', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
-    const { name, phone, referring_source } = req.body;
+    const { name, phone, referring_source, user_id } = req.body;
     
     // Basic validation
     if (!name) {
       return res.status(400).json({ error: 'Intern name is required' });
     }
     
-    // For MVP, user_id can be null or handled separately
-    // In a complete implementation, this would link to a user account
     const newIntern = await createIntern({
-      user_id: null, // This would normally come from user creation
+      user_id, // Now can be passed directly in request
       name,
       phone,
       referring_source
@@ -41,7 +43,7 @@ router.post('/interns', async (req, res) => {
  * POST /api/tasks
  * Create a new task
  */
-router.post('/tasks', async (req, res) => {
+router.post('/tasks', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const { title, description, due_date } = req.body;
     
@@ -50,9 +52,8 @@ router.post('/tasks', async (req, res) => {
       return res.status(400).json({ error: 'Task title is required' });
     }
     
-    // In a real implementation with auth, assigned_by would come from req.user.id
-    // For now, we'll assume the authenticated user's ID is available
-    const assigned_by = req.user?.id; // This will be set by auth middleware in Phase 5
+    // With auth middleware, req.user is guaranteed to exist
+    const assigned_by = req.user.id;
     
     const newTask = await createTask({
       title,
@@ -72,7 +73,7 @@ router.post('/tasks', async (req, res) => {
  * POST /api/assignments
  * Assign a task to one or more interns
  */
-router.post('/assignments', async (req, res) => {
+router.post('/assignments', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const { task_id, intern_ids } = req.body;
     
@@ -127,7 +128,7 @@ router.post('/assignments', async (req, res) => {
  * GET /api/submissions/pending
  * Get all submissions with 'Pending Review' status
  */
-router.get('/submissions/pending', async (req, res) => {
+router.get('/submissions/pending', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const pendingSubmissions = await findSubmissionsByStatus('Pending Review');
     res.status(200).json(pendingSubmissions);
@@ -141,12 +142,12 @@ router.get('/submissions/pending', async (req, res) => {
  * PUT /api/submissions/:id/approve
  * Approve a submission
  */
-router.put('/submissions/:id/approve', async (req, res) => {
+router.put('/submissions/:id/approve', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const submissionId = req.params.id;
     
-    // In a real implementation with auth, the reviewer ID would come from req.user.id
-    const reviewerId = req.user?.id; // This will be set by auth middleware in Phase 5
+    // With auth middleware, req.user is guaranteed to exist
+    const reviewerId = req.user.id;
     
     const updatedSubmission = await updateSubmissionStatus(
       submissionId,
@@ -170,7 +171,7 @@ router.put('/submissions/:id/approve', async (req, res) => {
  * PUT /api/submissions/:id/deny
  * Deny a submission with feedback
  */
-router.put('/submissions/:id/deny', async (req, res) => {
+router.put('/submissions/:id/deny', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const submissionId = req.params.id;
     const { feedback } = req.body;
@@ -180,8 +181,8 @@ router.put('/submissions/:id/deny', async (req, res) => {
       return res.status(400).json({ error: 'Feedback is required when denying a submission' });
     }
     
-    // In a real implementation with auth, the reviewer ID would come from req.user.id
-    const reviewerId = req.user?.id; // This will be set by auth middleware in Phase 5
+    // With auth middleware, req.user is guaranteed to exist
+    const reviewerId = req.user.id;
     
     const updatedSubmission = await updateSubmissionStatus(
       submissionId,

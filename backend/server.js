@@ -39,37 +39,22 @@ const internRoutes = require('./routes/intern');
 app.use(cors());
 app.use(express.json());
 
-// Basic auth middleware to extract user from JWT
-// This is a placeholder for Phase 5 - full authentication middleware
-const extractUserFromToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      req.user = decoded; // Set user info in request object
-    } catch (error) {
-      console.error('JWT verification error:', error);
-      // Continue without setting user info
-    }
-  }
-  
-  next();
-};
-
-// Apply the middleware to routes that need user info
-app.use(extractUserFromToken);
+// Our custom middleware is now applied directly in the route files
+// No need for a global extractUserFromToken middleware anymore
 
 app.get('/',(req,res) => {
-    res.send("Auth demo backend is running");
+    res.send("Uruti Hub Internship Dashboard Backend is running");
 });
 
 // Auth routes
 app.post('/signup', async (req, res) => {
-    const { email, password } = req.body;
-    const role = 'intern'; // Default role for signup, adjust if needed
+    const { email, password, role } = req.body;
+    const userRole = role || 'intern'; // Default role for signup if not specified
+    
+    // Validate role to ensure only allowed values
+    if (userRole !== 'intern' && userRole !== 'admin') {
+        return res.status(400).json({ message: "Invalid role. Must be 'intern' or 'admin'" });
+    }
 
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -88,7 +73,7 @@ app.post('/signup', async (req, res) => {
         // Insert user with hashed password and role
         const newUser = await pool.query(
             'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role',
-            [email, password_hash, role]
+            [email, password_hash, userRole]
         );
 
         res.status(201).json({ message: "User created successfully", user: newUser.rows[0] });
@@ -152,5 +137,5 @@ app.use('/api', adminRoutes);
 app.use('/api', internRoutes);
 
 app.listen(port, () => {
-    console.log (`Server running on port ${port}`);
+    console.log(`Server running on port ${port}`);
 });
