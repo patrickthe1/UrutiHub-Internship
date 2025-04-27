@@ -1,0 +1,3 @@
+[submodule "frontend"]
+	path = frontend
+	url = git@github.com:patrickthe1/uruti-hub-compass-view.git
