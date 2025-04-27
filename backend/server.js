@@ -32,13 +32,40 @@ const JWT_SECRET = process.env.JWT_SECRET || 'w+r8fKxcxkfOHYfSZb2olsx8q6DAQqhcjU
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Import route handlers
+const adminRoutes = require('./routes/admin');
+
 app.use(cors());
 app.use(express.json());
+
+// Basic auth middleware to extract user from JWT
+// This is a placeholder for Phase 5 - full authentication middleware
+const extractUserFromToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded; // Set user info in request object
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      // Continue without setting user info
+    }
+  }
+  
+  next();
+};
+
+// Apply the middleware to routes that need user info
+app.use(extractUserFromToken);
 
 app.get('/',(req,res) => {
     res.send("Auth demo backend is running");
 });
 
+// Auth routes
 app.post('/signup', async (req, res) => {
     const { email, password } = req.body;
     const role = 'intern'; // Default role for signup, adjust if needed
@@ -118,6 +145,9 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ message: 'Internal server error during login' });
     }
 });
+
+// Apply admin routes
+app.use('/api', adminRoutes);
 
 app.listen(port, () => {
     console.log (`Server running on port ${port}`);
