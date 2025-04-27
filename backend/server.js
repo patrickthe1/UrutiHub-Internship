@@ -34,6 +34,7 @@ const port = process.env.PORT || 5000;
 
 // Import route handlers
 const adminRoutes = require('./routes/admin');
+const internRoutes = require('./routes/intern');
 
 app.use(cors());
 app.use(express.json());
@@ -146,8 +147,9 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Apply admin routes
+// Apply admin and intern routes
 app.use('/api', adminRoutes);
+app.use('/api', internRoutes);
 
 app.listen(port, () => {
     console.log (`Server running on port ${port}`);
