@@ -46,7 +46,7 @@ app.get('/',(req,res) => {
     res.send("Uruti Hub Internship Dashboard Backend is running");
 });
 
-// Auth route - Only /login endpoint is kept
+    // Auth route - Only /login endpoint is kept
 // NOTE: Public /signup endpoint has been removed as per PRD requirements
 // Interns are now created by admins via POST /api/interns which creates both user and intern records
 app.post('/login', async (req, res) => {

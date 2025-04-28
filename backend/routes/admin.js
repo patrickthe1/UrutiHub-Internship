@@ -5,8 +5,8 @@ const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
 const db = require('../utils/db'); // Import db for transactions
 
 // Import models
-const { createIntern } = require('../models/interns');
-const { createTask, findTaskById } = require('../models/tasks');
+const { createIntern, findAllInterns } = require('../models/interns');
+const { createTask, findTaskById, findAllTasks } = require('../models/tasks');
 const { createAssignment, assignmentExists } = require('../models/internTasks');
 const { findSubmissionsByStatus, updateSubmissionStatus } = require('../models/submissions');
 
@@ -87,6 +87,20 @@ router.post('/interns', authMiddleware, adminRoleMiddleware, async (req, res) =>
 });
 
 /**
+ * GET /api/interns
+ * Get all interns
+ */
+router.get('/interns', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    const interns = await findAllInterns();
+    res.status(200).json(interns);
+  } catch (error) {
+    console.error('Error fetching interns:', error);
+    res.status(500).json({ error: 'Failed to fetch interns' });
+  }
+});
+
+/**
  * POST /api/tasks
  * Create a new task
  */
@@ -113,6 +127,20 @@ router.post('/tasks', authMiddleware, adminRoleMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error creating task:', error);
     res.status(500).json({ error: 'Failed to create task' });
+  }
+});
+
+/**
+ * GET /api/tasks
+ * Get all tasks
+ */
+router.get('/tasks', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    const tasks = await findAllTasks();
+    res.status(200).json(tasks);
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
   }
 });
 
