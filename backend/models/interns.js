@@ -62,7 +62,21 @@ const findInternByUserId = async (userId) => {
  */
 const findAllInterns = async () => {
   try {
-    const result = await db.query('SELECT * FROM interns ORDER BY created_at DESC');
+    // Enhanced query that:
+    // 1. Joins interns with users to get email
+    // 2. LEFT JOINs with intern_tasks and submissions to count approved submissions
+    // 3. Groups by intern and user data to get one row per intern
+    const result = await db.query(
+      `SELECT i.*, 
+              u.email,
+              COUNT(CASE WHEN s.status = 'Approved' THEN 1 END) AS tasks_completed_count 
+       FROM interns i
+       JOIN users u ON i.user_id = u.id
+       LEFT JOIN intern_tasks it ON i.id = it.intern_id
+       LEFT JOIN submissions s ON it.id = s.intern_task_id
+       GROUP BY i.id, u.id
+       ORDER BY i.created_at DESC`
+    );
     return result.rows;
   } catch (error) {
     console.error('Error finding all interns:', error);
