@@ -172,4 +172,71 @@ router.get('/interns/me/submissions', authMiddleware, internRoleMiddleware, asyn
   }
 });
 
+/**
+ * GET /api/interns/me/dashboard-stats
+ * Get dashboard statistics for Intern dashboard
+ * Returns counts for total assigned tasks, and submissions with different statuses
+ */
+router.get('/interns/me/dashboard-stats', authMiddleware, internRoleMiddleware, async (req, res) => {
+  try {
+    // With auth middleware, req.user is guaranteed to exist
+    const userId = req.user.id;
+
+    // Get the intern ID associated with the user
+    const internId = await getInternId(userId);
+    if (!internId) {
+      return res.status(404).json({ error: 'Intern profile not found for this user' });
+    }
+
+    // 1. Query for total assigned tasks count
+    const assignedTasksResult = await db.query(
+      'SELECT COUNT(*) AS total_assigned_tasks FROM intern_tasks WHERE intern_id = $1',
+      [internId]
+    );
+    const total_assigned_tasks = parseInt(assignedTasksResult.rows[0].total_assigned_tasks);
+    
+    // 2. Query for submissions with 'Pending Review' status
+    const pendingReviewResult = await db.query(
+      `SELECT COUNT(*) AS submissions_pending_review 
+       FROM submissions s
+       JOIN intern_tasks it ON s.intern_task_id = it.id
+       WHERE it.intern_id = $1 AND s.status = 'Pending Review'`,
+      [internId]
+    );
+    const submissions_pending_review = parseInt(pendingReviewResult.rows[0].submissions_pending_review);
+    
+    // 3. Query for submissions with 'Approved' status
+    const approvedResult = await db.query(
+      `SELECT COUNT(*) AS submissions_approved 
+       FROM submissions s
+       JOIN intern_tasks it ON s.intern_task_id = it.id
+       WHERE it.intern_id = $1 AND s.status = 'Approved'`,
+      [internId]
+    );
+    const submissions_approved = parseInt(approvedResult.rows[0].submissions_approved);
+    
+    // 4. Query for submissions with 'Denied' status
+    const deniedResult = await db.query(
+      `SELECT COUNT(*) AS submissions_denied 
+       FROM submissions s
+       JOIN intern_tasks it ON s.intern_task_id = it.id
+       WHERE it.intern_id = $1 AND s.status = 'Denied'`,
+      [internId]
+    );
+    const submissions_denied = parseInt(deniedResult.rows[0].submissions_denied);
+    
+    // Return all counts in a single JSON object
+    res.status(200).json({
+      total_assigned_tasks,
+      submissions_pending_review,
+      submissions_approved,
+      submissions_denied
+    });
+    
+  } catch (error) {
+    console.error('Error fetching intern dashboard statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
+
 module.exports = router;
