@@ -57,7 +57,7 @@ router.get('/interns/me/tasks', authMiddleware, internRoleMiddleware, async (req
 router.post('/intern_tasks/:internTaskId/submit', authMiddleware, internRoleMiddleware, async (req, res) => {
   try {
     const { internTaskId } = req.params;
-    const { submission_link } = req.body;
+    const { submission_link, comments } = req.body;
 
     // Validate submission link
     if (!submission_link) {
@@ -89,8 +89,8 @@ router.post('/intern_tasks/:internTaskId/submit', authMiddleware, internRoleMidd
       return res.status(409).json({ error: 'A submission already exists for this task' });
     }
 
-    // Create the submission
-    const submission = await createSubmission(internTaskId, submission_link);
+    // Create the submission with comments
+    const submission = await createSubmission(internTaskId, submission_link, comments);
 
     res.status(201).json(submission);
   } catch (error) {

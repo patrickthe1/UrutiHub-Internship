@@ -4,15 +4,17 @@ const db = require('../utils/db');
  * Create a new submission for a specific assignment
  * @param {number} internTaskId - The intern_task assignment ID
  * @param {string} submissionLink - The submission link (e.g., GitHub repo)
+ * @param {string} comments - Optional comments from the intern (stored in feedback for now)
  * @returns {Promise} - Promise resolving to the created submission
  */
-const createSubmission = async (internTaskId, submissionLink) => {
+const createSubmission = async (internTaskId, submissionLink, comments = null) => {
   try {
+    // Store intern comments in the feedback field temporarily until DB schema is updated
     const result = await db.query(
-      `INSERT INTO submissions (intern_task_id, submission_link, status) 
-       VALUES ($1, $2, 'Pending Review') 
+      `INSERT INTO submissions (intern_task_id, submission_link, status, feedback) 
+       VALUES ($1, $2, 'Pending Review', $3) 
        RETURNING *`,
-      [internTaskId, submissionLink]
+      [internTaskId, submissionLink, comments]
     );
     return result.rows[0];
   } catch (error) {
