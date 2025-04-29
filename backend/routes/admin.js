@@ -220,14 +220,14 @@ router.get('/submissions/pending', authMiddleware, adminRoleMiddleware, async (r
 router.put('/submissions/:id/approve', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const submissionId = req.params.id;
-    
+    const { feedback } = req.body
     // With auth middleware, req.user is guaranteed to exist
     const reviewerId = req.user.id;
     
     const updatedSubmission = await updateSubmissionStatus(
       submissionId,
       'Approved',
-      null, // No feedback needed for approval
+      feedback, 
       reviewerId
     );
     
@@ -274,6 +274,38 @@ router.put('/submissions/:id/deny', authMiddleware, adminRoleMiddleware, async (
   } catch (error) {
     console.error('Error denying submission:', error);
     res.status(500).json({ error: 'Failed to deny submission' });
+  }
+});
+
+/**
+ * GET /api/admin/dashboard-stats
+ * Get dashboard statistics for Admin dashboard
+ * Returns counts for total interns, total tasks, and total submissions
+ */
+router.get('/admin/dashboard-stats', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    // Query to get total interns count
+    const internsResult = await db.query('SELECT COUNT(*) AS total_interns FROM interns');
+    const total_interns = parseInt(internsResult.rows[0].total_interns);
+    
+    // Query to get total tasks count
+    const tasksResult = await db.query('SELECT COUNT(*) AS total_tasks_created FROM tasks');
+    const total_tasks_created = parseInt(tasksResult.rows[0].total_tasks_created);
+    
+    // Query to get total submissions count
+    const submissionsResult = await db.query('SELECT COUNT(*) AS total_submissions FROM submissions');
+    const total_submissions = parseInt(submissionsResult.rows[0].total_submissions);
+    
+    // Return all counts in a single JSON object
+    res.status(200).json({
+      total_interns,
+      total_tasks_created,
+      total_submissions
+    });
+    
+  } catch (error) {
+    console.error('Error fetching dashboard statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
   }
 });
 
