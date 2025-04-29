@@ -4,15 +4,14 @@ const db = require('../utils/db');
  * Create a new submission for a specific assignment
  * @param {number} internTaskId - The intern_task assignment ID
  * @param {string} submissionLink - The submission link (e.g., GitHub repo)
- * @param {string} comments - Optional comments from the intern (stored in feedback for now)
+ * @param {string} comments - Optional comments from the intern
  * @returns {Promise} - Promise resolving to the created submission
  */
 const createSubmission = async (internTaskId, submissionLink, comments = null) => {
   try {
-    // Store intern comments in the feedback field temporarily until DB schema is updated
     const result = await db.query(
-      `INSERT INTO submissions (intern_task_id, submission_link, status, feedback) 
-       VALUES ($1, $2, 'Pending Review', $3) 
+      `INSERT INTO submissions (intern_task_id, submission_link, comments, status) 
+       VALUES ($1, $2, $3, 'Pending Review') 
        RETURNING *`,
       [internTaskId, submissionLink, comments]
     );
@@ -31,7 +30,7 @@ const createSubmission = async (internTaskId, submissionLink, comments = null) =
 const findSubmissionsByStatus = async (status) => {
   try {
     const result = await db.query(
-      `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback,
+      `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback, s.comments,
               s.submitted_at, s.reviewed_at, s.reviewed_by,
               it.intern_id, it.task_id,
               i.name AS intern_name,
@@ -83,7 +82,7 @@ const updateSubmissionStatus = async (submissionId, status, feedback, reviewerId
 const findSubmissionsByInternId = async (internId) => {
   try {
     const result = await db.query(
-      `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback,
+      `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback, s.comments,
               s.submitted_at, s.reviewed_at,
               t.id AS task_id, t.title AS task_title
        FROM submissions s

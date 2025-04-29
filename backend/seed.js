@@ -97,16 +97,17 @@ async function createInternWithUser(internData) {
  * @param {Object} submissionData - Submission data
  * @param {number} submissionData.intern_task_id - ID of the intern task
  * @param {string} submissionData.submission_link - URL submitted by the intern
+ * @param {string} submissionData.comments - Optional comments from the intern
  * @returns {Promise<Object>} - Created submission
  */
 async function createSubmission(submissionData) {
-  const { intern_task_id, submission_link } = submissionData;
+  const { intern_task_id, submission_link, comments } = submissionData;
   
   const result = await pool.query(
-    `INSERT INTO submissions (intern_task_id, submission_link, status, submitted_at) 
-     VALUES ($1, $2, 'Pending Review', NOW()) 
+    `INSERT INTO submissions (intern_task_id, submission_link, comments, status, submitted_at) 
+     VALUES ($1, $2, $3, 'Pending Review', NOW()) 
      RETURNING *`,
-    [intern_task_id, submission_link]
+    [intern_task_id, submission_link, comments]
   );
   
   console.log(`Created submission for intern task ID: ${intern_task_id}`);
@@ -262,26 +263,30 @@ async function seedDatabase() {
     // Intern 1 submits for Task 1
     await createSubmission({
       intern_task_id: assignments[0].id,
-      submission_link: 'https://github.com/intern1/ui-components'
+      submission_link: 'https://github.com/intern1/ui-components',
+      comments: 'I focused on creating reusable components with proper props validation. All components are responsive and follow the design system guidelines.'
     });
     
     // Intern 2 submits for Task 2
     await createSubmission({
-      intern_task_id: assignments[3].id,  // Fixed: Added .id to extract just the ID
-      submission_link: 'https://github.com/intern2/api-integration'
+      intern_task_id: assignments[3].id,
+      submission_link: 'https://github.com/intern2/api-integration',
+      comments: 'Implemented Axios interceptors for error handling and JWT token management. Added proper loading states for all API calls.'
     });
     
     // Intern 5 submits for Task 5
     await createSubmission({
       intern_task_id: assignments[assignments.length - 1].id,
-      submission_link: 'https://github.com/intern5/documentation'
+      submission_link: 'https://github.com/intern5/documentation',
+      comments: 'Created comprehensive documentation including API references, component usage examples, and setup instructions.'
     });
     
     // Create submissions with "Approved" status
     // Intern 3 submits for Task 1 and gets approved
     const submission1 = await createSubmission({
       intern_task_id: assignments[2].id,
-      submission_link: 'https://github.com/intern3/ui-components-complete'
+      submission_link: 'https://github.com/intern3/ui-components-complete',
+      comments: 'Implemented all required components with storybook examples. Added unit tests with 95% coverage.'
     });
     
     await updateSubmissionStatus(
