@@ -220,14 +220,14 @@ router.get('/submissions/pending', authMiddleware, adminRoleMiddleware, async (r
 router.put('/submissions/:id/approve', authMiddleware, adminRoleMiddleware, async (req, res) => {
   try {
     const submissionId = req.params.id;
-    const { feedback } = req.body
+    const { feedback } = req.body || {}; // Make feedback optional
     // With auth middleware, req.user is guaranteed to exist
     const reviewerId = req.user.id;
     
     const updatedSubmission = await updateSubmissionStatus(
       submissionId,
       'Approved',
-      feedback, 
+      feedback || null, // Pass null if feedback is undefined
       reviewerId
     );
     
