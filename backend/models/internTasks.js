@@ -24,17 +24,24 @@ const createAssignment = async (internId, taskId) => {
 /**
  * Find all assignments for a specific intern
  * @param {number} internId - The intern ID
- * @returns {Promise} - Promise resolving to an array of assignments with task details and submission status
+ * @returns {Promise} - Promise resolving to an array of assignments with task details and latest submission status
  */
 const findAssignmentsByInternId = async (internId) => {
   try {
     const result = await db.query(
       `SELECT it.id AS assignment_id, it.intern_id, it.task_id, it.assigned_at,
               t.title, t.description, t.due_date,
-              s.status AS submission_status
+              COALESCE(latest_sub.status, 'Not Started') AS latest_submission_status,
+              latest_sub.submitted_at AS latest_submission_date
        FROM intern_tasks it
        JOIN tasks t ON it.task_id = t.id
-       LEFT JOIN submissions s ON it.id = s.intern_task_id
+       LEFT JOIN LATERAL (
+         SELECT s.status, s.submitted_at
+         FROM submissions s
+         WHERE s.intern_task_id = it.id
+         ORDER BY s.submitted_at DESC
+         LIMIT 1
+       ) latest_sub ON true
        WHERE it.intern_id = $1
        ORDER BY t.due_date ASC`,
       [internId]

@@ -84,17 +84,47 @@ const findSubmissionsByInternId = async (internId) => {
     const result = await db.query(
       `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback, s.comments,
               s.submitted_at, s.reviewed_at,
-              t.id AS task_id, t.title AS task_title
+              t.id AS task_id, t.title AS task_title, t.description AS task_description,
+              RANK() OVER (PARTITION BY s.intern_task_id ORDER BY s.submitted_at ASC) AS submission_attempt
        FROM submissions s
        JOIN intern_tasks it ON s.intern_task_id = it.id
        JOIN tasks t ON it.task_id = t.id
        WHERE it.intern_id = $1
-       ORDER BY s.submitted_at DESC`,
+       ORDER BY s.intern_task_id, s.submitted_at DESC`,
       [internId]
     );
     return result.rows;
   } catch (error) {
     console.error('Error finding submissions by intern ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Find all submissions for a specific task assignment (intern_task_id)
+ * @param {number} internTaskId - The intern_task assignment ID
+ * @returns {Promise} - Promise resolving to an array of submissions ordered by submission date
+ */
+const findSubmissionsByInternTaskId = async (internTaskId) => {
+  try {
+    const result = await db.query(
+      `SELECT s.id, s.intern_task_id, s.submission_link, s.status, s.feedback, s.comments,
+              s.submitted_at, s.reviewed_at, s.reviewed_by,
+              it.intern_id, it.task_id, 
+              t.title AS task_title,
+              i.name AS intern_name,
+              RANK() OVER (ORDER BY s.submitted_at ASC) AS submission_attempt
+       FROM submissions s
+       JOIN intern_tasks it ON s.intern_task_id = it.id
+       JOIN tasks t ON it.task_id = t.id
+       JOIN interns i ON it.intern_id = i.id
+       WHERE s.intern_task_id = $1
+       ORDER BY s.submitted_at ASC`,
+      [internTaskId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error('Error finding submissions by intern task ID:', error);
     throw error;
   }
 };
@@ -125,5 +155,6 @@ module.exports = {
   findSubmissionsByStatus,
   updateSubmissionStatus,
   findSubmissionsByInternId,
+  findSubmissionsByInternTaskId,
   submissionExists
 };

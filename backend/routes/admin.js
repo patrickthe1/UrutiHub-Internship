@@ -8,7 +8,7 @@ const db = require('../utils/db'); // Import db for transactions
 const { createIntern, findAllInterns } = require('../models/interns');
 const { createTask, findTaskById, findAllTasks } = require('../models/tasks');
 const { createAssignment, assignmentExists } = require('../models/internTasks');
-const { findSubmissionsByStatus, updateSubmissionStatus } = require('../models/submissions');
+const { findSubmissionsByStatus, updateSubmissionStatus, findSubmissionsByInternTaskId } = require('../models/submissions');
 
 // Import middleware
 const authMiddleware = require('../middleware/authMiddleware');
@@ -306,6 +306,29 @@ router.get('/admin/dashboard-stats', authMiddleware, adminRoleMiddleware, async 
   } catch (error) {
     console.error('Error fetching dashboard statistics:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
+
+/**
+ * GET /api/submissions/history/:internTaskId
+ * Get full submission history for a specific task assignment
+ * Admin role has access to any submission history
+ */
+router.get('/submissions/history/:internTaskId', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    const { internTaskId } = req.params;
+    
+    // Fetch all submissions for this task assignment
+    const submissions = await findSubmissionsByInternTaskId(internTaskId);
+    
+    if (!submissions || submissions.length === 0) {
+      return res.status(404).json({ error: 'No submissions found for this task assignment' });
+    }
+    
+    res.status(200).json(submissions);
+  } catch (error) {
+    console.error('Error fetching submission history:', error);
+    res.status(500).json({ error: 'Failed to fetch submission history' });
   }
 });
 

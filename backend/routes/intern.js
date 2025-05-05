@@ -6,7 +6,7 @@ const db = require('../utils/db'); // Import db for direct queries
 // Import models
 const { findInternByUserId } = require('../models/interns');
 const { findAssignmentsByInternId, findAssignmentById } = require('../models/internTasks');
-const { createSubmission, submissionExists, findSubmissionsByInternId } = require('../models/submissions');
+const { createSubmission, submissionExists, findSubmissionsByInternId, findSubmissionsByInternTaskId } = require('../models/submissions');
 
 // Import middleware
 const authMiddleware = require('../middleware/authMiddleware');
@@ -83,11 +83,8 @@ router.post('/intern_tasks/:internTaskId/submit', authMiddleware, internRoleMidd
       return res.status(403).json({ error: 'You do not have permission to submit for this task' });
     }
 
-    // Check if a submission already exists for this task assignment
-    const exists = await submissionExists(internTaskId);
-    if (exists) {
-      return res.status(409).json({ error: 'A submission already exists for this task' });
-    }
+    // Note: removed the check that prevented resubmissions
+    // This allows interns to submit multiple times for the same task assignment
 
     // Create the submission with comments
     const submission = await createSubmission(internTaskId, submission_link, comments);
@@ -236,6 +233,43 @@ router.get('/interns/me/dashboard-stats', authMiddleware, internRoleMiddleware, 
   } catch (error) {
     console.error('Error fetching intern dashboard statistics:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
+
+/**
+ * GET /api/submissions/history/:internTaskId
+ * Get full submission history for a specific task assignment
+ * Interns can only access submission history for tasks assigned to them
+ */
+router.get('/submissions/history/:internTaskId', authMiddleware, internRoleMiddleware, async (req, res) => {
+  try {
+    const { internTaskId } = req.params;
+    const userId = req.user.id;
+
+    // Get the intern ID associated with the user
+    const internId = await getInternId(userId);
+    if (!internId) {
+      return res.status(404).json({ error: 'Intern profile not found for this user' });
+    }
+
+    // Verify the intern is assigned to this task
+    const assignment = await findAssignmentById(internTaskId);
+    if (!assignment) {
+      return res.status(404).json({ error: 'Task assignment not found' });
+    }
+
+    if (assignment.intern_id !== internId) {
+      return res.status(403).json({ error: 'You do not have permission to access this task assignment' });
+    }
+
+    // Fetch all submissions for this task assignment
+    const submissions = await findSubmissionsByInternTaskId(internTaskId);
+    
+    // Even if there are no submissions yet, return an empty array
+    res.status(200).json(submissions || []);
+  } catch (error) {
+    console.error('Error fetching submission history:', error);
+    res.status(500).json({ error: 'Failed to fetch submission history' });
   }
 });
 
