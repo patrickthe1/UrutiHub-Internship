@@ -332,4 +332,150 @@ router.get('/submissions/history/:internTaskId', authMiddleware, adminRoleMiddle
   }
 });
 
+/**
+ * GET /api/admin/stats/submission-statuses
+ * Get counts of submissions grouped by status for Admin dashboard charts
+ * Returns counts for 'Pending Review', 'Approved', and 'Denied' submissions
+ */
+router.get('/admin/stats/submission-statuses', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    // Query to get submission counts by status
+    const result = await db.query(`
+      SELECT status, COUNT(*) as count
+      FROM submissions
+      GROUP BY status
+      ORDER BY status
+    `);
+    
+    // Convert the rows to a more frontend-friendly format
+    const statusCounts = result.rows.map(row => ({
+      status: row.status,
+      count: parseInt(row.count)
+    }));
+    
+    res.status(200).json(statusCounts);
+  } catch (error) {
+    console.error('Error fetching submission status counts:', error);
+    res.status(500).json({ error: 'Failed to fetch submission status counts' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/completion-over-time
+ * Get data for Task Completion Rate Over Time chart
+ * Returns counts of approved submissions grouped by month/year
+ */
+router.get('/admin/stats/completion-over-time', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    // Get optional 'months' parameter with default of 12 months
+    const months = req.query.months ? parseInt(req.query.months) : 12;
+    
+    // Query to get approved submissions grouped by month
+    const result = await db.query(`
+      SELECT 
+        TO_CHAR(reviewed_at, 'YYYY-MM') AS period,
+        COUNT(*) AS count
+      FROM submissions
+      WHERE 
+        status = 'Approved' 
+        AND reviewed_at IS NOT NULL
+        AND reviewed_at >= NOW() - INTERVAL '${months} months'
+      GROUP BY period
+      ORDER BY period ASC
+    `);
+    
+    // Convert the rows to a more frontend-friendly format
+    const timeData = result.rows.map(row => ({
+      period: row.period,
+      count: parseInt(row.count)
+    }));
+    
+    res.status(200).json(timeData);
+  } catch (error) {
+    console.error('Error fetching completion over time data:', error);
+    res.status(500).json({ error: 'Failed to fetch completion over time data' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/submissions-per-intern
+ * Get data for Submissions Per Intern chart
+ * Returns counts of submissions made by each intern
+ */
+router.get('/admin/stats/submissions-per-intern', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    // Query to get submission counts by intern
+    const result = await db.query(`
+      SELECT 
+        i.id AS intern_id, 
+        i.name AS intern_name, 
+        COUNT(s.id) AS submission_count
+      FROM 
+        submissions s
+      JOIN 
+        intern_tasks it ON s.intern_task_id = it.id
+      JOIN 
+        interns i ON it.intern_id = i.id
+      GROUP BY 
+        i.id, i.name
+      ORDER BY 
+        submission_count DESC
+    `);
+    
+    // Convert the rows to a more frontend-friendly format
+    const internData = result.rows.map(row => ({
+      internId: row.intern_id,
+      internName: row.intern_name,
+      submissionCount: parseInt(row.submission_count)
+    }));
+    
+    res.status(200).json(internData);
+  } catch (error) {
+    console.error('Error fetching submissions per intern data:', error);
+    res.status(500).json({ error: 'Failed to fetch submissions per intern data' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/assigned-vs-completed
+ * Get data for Tasks Assigned vs. Tasks Completed chart
+ * Returns counts of total assigned tasks and total completed tasks
+ */
+router.get('/admin/stats/assigned-vs-completed', authMiddleware, adminRoleMiddleware, async (req, res) => {
+  try {
+    // Query to get total assigned tasks count
+    const assignedResult = await db.query('SELECT COUNT(*) AS total_assigned FROM intern_tasks');
+    const totalAssigned = parseInt(assignedResult.rows[0].total_assigned);
+    
+    // Query to get total completed tasks count (where the latest submission is 'Approved')
+    // Using a subquery to get the latest submission for each intern_task
+    const completedResult = await db.query(`
+      SELECT COUNT(*) AS total_completed
+      FROM intern_tasks it
+      WHERE EXISTS (
+        SELECT 1
+        FROM submissions s1
+        WHERE 
+          s1.intern_task_id = it.id 
+          AND s1.status = 'Approved'
+          AND s1.submitted_at = (
+            SELECT MAX(submitted_at)
+            FROM submissions s2
+            WHERE s2.intern_task_id = it.id
+          )
+      )
+    `);
+    const totalCompleted = parseInt(completedResult.rows[0].total_completed);
+    
+    // Return both counts in a single JSON object
+    res.status(200).json({
+      totalAssigned,
+      totalCompleted
+    });
+  } catch (error) {
+    console.error('Error fetching assigned vs. completed counts:', error);
+    res.status(500).json({ error: 'Failed to fetch assigned vs. completed counts' });
+  }
+});
+
 module.exports = router;
