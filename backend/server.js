@@ -4,28 +4,8 @@ const cors = require('cors');
 const bcrypt = require('bcrypt'); // Import bcrypt
 const jwt = require('jsonwebtoken'); // Import jsonwebtoken
 
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_DATABASE,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-
-pool.connect((err, client, release) => {
-    if (err) {
-      return console.error('Error acquiring client', err.stack);
-    }
-    client.query('SELECT NOW()', (err, result) => {
-      release(); 
-      if (err) {
-        return console.error('Error executing query', err.stack);
-      }
-      console.log('Database connected successfully:', result.rows[0].now);
-    });
-  });
+// Import the db module that handles database connections
+const db = require('./utils/db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'w+r8fKxcxkfOHYfSZb2olsx8q6DAQqhcjU0SgVIIUxA='; // Add a JWT secret (move to .env)
 
@@ -57,8 +37,8 @@ app.post('/login', async (req, res) => {
     }
 
     try {
-        // Fetch user including password hash and role
-        const result = await pool.query('SELECT id, email, password_hash, role FROM users WHERE email = $1', [email]);
+        // Fetch user including password hash and role - Using db.query from the db module
+        const result = await db.query('SELECT id, email, password_hash, role FROM users WHERE email = $1', [email]);
 
         if (result.rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials' }); // User not found
