@@ -18,15 +18,33 @@ const internRoutes = require('./routes/intern');
 
 // Configure CORS to allow requests from frontend domain
 // This is a critical security configuration
+const allowedOrigins = [
+  'https://uruti-hub-frontend.netlify.app',  // Production frontend URL
+  'http://localhost:5173',                    // Development frontend URL
+  'http://localhost:3000'                     // Another common dev port
+];
+
 const corsOptions = {
-  origin: [
-    'https://uruti-hub-frontend.netlify.app',  // Production frontend URL
-    'http://localhost:5173',                    // Development frontend URL
-    'http://localhost:3000'                     // Another common dev port
-  ],
+  origin: function(origin, callback) {
+    // Enhanced CORS debugging logs
+    console.log('CORS check: Request Origin received:', origin);
+    console.log('CORS check: Allowed Origins list:', allowedOrigins);
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    // OR requests from the allowed origins list
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      console.log('CORS check: Origin ALLOWED:', origin || 'No Origin');
+      callback(null, true);
+    } else {
+      console.error('CORS check: Origin BLOCKED:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
@@ -39,13 +57,21 @@ app.get('/',(req,res) => {
     res.send("Uruti Hub Internship Dashboard Backend is running");
 });
 
-    // Auth route - Only /login endpoint is kept
+// Explicit OPTIONS handler for /login BEFORE the POST /login route
+app.options('/login', cors(corsOptions), (req, res) => {
+    console.log('Received OPTIONS request for /login. Sending CORS headers.');
+    res.sendStatus(204); // Respond with 204 No Content for preflight
+});
+
+// Auth route - Only /login endpoint is kept
 // NOTE: Public /signup endpoint has been removed as per PRD requirements
 // Interns are now created by admins via POST /api/interns which creates both user and intern records
 app.post('/login', async (req, res) => {
+    console.log('POST /login route hit. Processing login attempt.');
     const { email, password } = req.body;
 
     if (!email || !password) {
+        console.log('Login failed: Missing email or password');
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
@@ -83,9 +109,9 @@ app.post('/login', async (req, res) => {
         } else {
             // Passwords don't match
             res.status(401).json({ message: 'Invalid credentials' });
-        }
-    } catch (error) {
+        }    } catch (error) {
         console.error('Error during login:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ message: 'Internal server error during login' });
     }
 });
