@@ -39,7 +39,6 @@ INSERT INTO tasks (title, description, due_date, assigned_by) VALUES
 ('Documentation', 'Create comprehensive API and user documentation.', '2023-10-01', 1);
 
 -- Assign tasks to interns (intern_tasks)
--- John has all tasks assigned
 INSERT INTO intern_tasks (intern_id, task_id) VALUES
 (1, 1), -- John - Frontend Setup
 (1, 2), -- John - User Authentication
@@ -56,7 +55,7 @@ INSERT INTO intern_tasks (intern_id, task_id) VALUES
 (5, 5); -- David - API Development
 
 -- Insert submissions with various statuses
--- John: has multiple submissions for some tasks, with different statuses
+-- Multiple submissions for some tasks to test resubmission feature
 INSERT INTO submissions (intern_task_id, submission_link, status, feedback, submitted_at, reviewed_at, reviewed_by, comments) VALUES
 -- John's submissions (some with resubmissions)
 (1, 'https://github.com/johndoe/frontend-setup', 'Approved', 'Great work!', '2023-06-10 10:30:00', '2023-06-11 14:20:00', 1, 'Initial submission with basic setup'),
@@ -70,7 +69,7 @@ INSERT INTO submissions (intern_task_id, submission_link, status, feedback, subm
 (5, 'https://github.com/janesmith/admin-dashboard-v2', 'Pending Review', NULL, '2023-08-02 15:30:00', NULL, NULL, 'Fixed chart issues and added more visualizations'),
 (6, 'https://github.com/janesmith/responsive-design', 'Pending Review', NULL, '2023-09-14 14:25:00', NULL, NULL, 'Implemented responsive design with media queries'),
 
--- Alex's submissions
+-- Alex's submissions (multiple resubmissions to test the feature)
 (7, 'https://github.com/alexjohnson/auth-system', 'Approved', 'Very secure implementation', '2023-06-28 10:45:00', '2023-06-29 13:20:00', 1, 'Authentication system with role-based access'),
 (8, 'https://github.com/alexjohnson/api-dev', 'Denied', 'Missing error handling in several endpoints', '2023-08-10 09:30:00', '2023-08-11 14:15:00', 1, 'Initial API implementation'),
 (8, 'https://github.com/alexjohnson/api-dev-v2', 'Denied', 'Still issues with validation', '2023-08-13 11:20:00', '2023-08-14 15:40:00', 1, 'Added error handling as requested'),
@@ -91,6 +90,6 @@ INSERT INTO submissions (intern_task_id, submission_link, status, feedback, subm
 -- 1. Connect to your PostgreSQL database:
 --    psql YOUR_EXTERNAL_DATABASE_URL
 -- 2. Once connected, execute this script:
---    \i /path/to/your/saved/seed.sql
+--    \i /path/to/your/saved/corrected_seed.sql
 -- 3. Watch for any error messages during execution.
 -- 4. Type \q to exit psql after successful execution.
