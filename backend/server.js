@@ -20,7 +20,7 @@ const internRoutes = require('./routes/intern');
 // This is a critical security configuration
 const corsOptions = {
   origin: [
-    'https://uruti-hub-frontend.onrender.com',  // Production frontend URL
+    'https://uruti-hub-frontend.netlify.app',  // Production frontend URL
     'http://localhost:5173',                    // Development frontend URL
     'http://localhost:3000'                     // Another common dev port
   ],
