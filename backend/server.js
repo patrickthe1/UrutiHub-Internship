@@ -16,7 +16,20 @@ const port = process.env.PORT || 5000;
 const adminRoutes = require('./routes/admin');
 const internRoutes = require('./routes/intern');
 
-app.use(cors());
+// Configure CORS to allow requests from frontend domain
+// This is a critical security configuration
+const corsOptions = {
+  origin: [
+    'https://uruti-hub-frontend.onrender.com',  // Production frontend URL
+    'http://localhost:5173',                    // Development frontend URL
+    'http://localhost:3000'                     // Another common dev port
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Our custom middleware is now applied directly in the route files
